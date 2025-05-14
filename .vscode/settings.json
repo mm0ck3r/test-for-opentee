@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "tee_client_api.h": "c",
+        "sign_ecdsa_256_ctrl.h": "c"
+    }
+}
