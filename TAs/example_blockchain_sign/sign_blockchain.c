@@ -118,7 +118,7 @@ TEE_Result hashWithNetwork(void* sessionContext, TEE_Param params[4]){
         case 1: // Ethereum, Not yet.
             break;
     }
-    return rv
+    return rv;
 }
 
 TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
@@ -142,20 +142,15 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
             hashWithNetwork(sessionContext, params);
             break;
         case SIGN_DOFINAL:
-                
-
-        
-	// case SIGN_ECDSA_256_SIGN:
-	// 	rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0,
-	// 			      params[0].memref.buffer, params[0].memref.size,
-	// 			      params[1].memref.buffer, &params[1].memref.size);
-	// 	if (rv != TEE_SUCCESS) {
-	// 		OT_LOG(LOG_ERR, "Sign failed");
-	// 	}
-	// 	break;
+            rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0,
+                    params[0].memref.buffer, params[0].memref.size,
+                    params[1].memref.buffer, &params[1].memref.size);
+            if (rv != TEE_SUCCESS) {
+                OT_LOG(LOG_ERR, "Sign failed");
+            }
+            break;
         default:
             rv = TEE_ERROR_BAD_PARAMETERS;
 	}
-	
 	return rv;
 }

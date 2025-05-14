@@ -15,6 +15,7 @@ int main(){
 
     unsigned char sig[72];
     unsigned char input[32];
+    unsigned char hash_output[32];
 
 	memset((void *)&in_mem, 0, sizeof(in_mem));
 	memset((void *)&out_mem, 0, sizeof(out_mem));
@@ -45,7 +46,7 @@ int main(){
 		goto end_3;
 	}    
 
-    out_mem.buffer = sig;
+    out_mem.buffer = hash_output;
 	out_mem.size = 32;
 	out_mem.flags = TEEC_MEM_OUTPUT;
 
@@ -60,22 +61,16 @@ int main(){
 	operation.params[0].value.a = 0;
     operation.params[1].memref.parent = &in_mem;
 	operation.params[2].memref.parent = &out_mem; // here is value of double-hash
-	// tee_rv = TEEC_InvokeCommand(&session, SIGN_UPDATE, &operation, NULL);
-	// if (tee_rv != TEEC_SUCCESS) {
-	// 	printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
-	// 	goto end_4;
-	// }
-    tee_rv = TEEC_InvokeCommand(&session, HASH_DOFINAL, NULL, NULL);
+    tee_rv = TEEC_InvokeCommand(&session, HASH_DOFINAL, &operation, NULL);
     	if (tee_rv != TEEC_SUCCESS) {
 		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
 		goto end_4;
 	} // Iin out_mem, there is a value of double hash
 
-
-
-    memset((void *)&in_mem, 0, sizeof(in_mem));
-    memcpy(in_mem.buffer, out_mem.buffer, out_mem.size);
-    in_mem.size = out_mem.size;
+    memset(input, 0, sizeof(input));
+    memcpy(input, hash_output, 32);
+    in_mem.buffer = input;
+    in_mem.size = 32;
     in_mem.flags = TEEC_MEM_INPUT;
 
     memset((void *)&out_mem, 0, sizeof(out_mem));
