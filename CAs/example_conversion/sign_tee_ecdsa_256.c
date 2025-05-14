@@ -116,6 +116,14 @@ int main()
 		goto end_4;
 	}
 
+	// print signature
+	printf("Signature (%u bytes):\n", (unsigned int)sig_mem.size);
+
+	for (size_t i = 0; i < sig_mem.size; i++) {
+    	printf("%02x", ((unsigned char *)sig_mem.buffer)[i]);
+	}
+	printf("\n");
+
 	//Signature stored: operation.params[1].memref
 	
 end_4:
