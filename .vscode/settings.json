@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "operation_handle.h": "c"
+        "operation_handle.h": "c",
+        "tee_client_api.h": "c",
+        "sign_ecdsa_256_ctrl.h": "c"
     }
 }
