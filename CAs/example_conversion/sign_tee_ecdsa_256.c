@@ -117,10 +117,10 @@ int main()
 	}
 
 	// print signature
-	printf("Signature (%u bytes):\n", (unsigned int)sig_mem.size);
+	printf("Signature (%u bytes):\n", (unsigned int)out_mem.size);
 
-	for (size_t i = 0; i < sig_mem.size; i++) {
-    	printf("%02x", ((unsigned char *)sig_mem.buffer)[i]);
+	for (size_t i = 0; i < out_mem.size; i++) {
+    	printf("%02x", ((unsigned char *)out_mem.buffer)[i]);
 	}
 	printf("\n");
 
