@@ -1,0 +1,14 @@
+ta_LTLIBRARIES += libsign_blockchain.la
+
+libsign_blockchain_la_includes = \
+	include/tee_ta_properties.h \
+	sign_blockchain_ctrl.h
+
+libsign_blockchain_la_SOURCES = $(libsign_blockchain_la_includes) \
+	example_blockchain_sign/sign_blockchain.c
+
+libsign_blockchain_la_CFLAGS = ${AM_CFLAGS} \
+        -iquote $(top_srcdir)/include \
+        -iquote $(top_srcdir)/../emulator/include
+
+libsign_blockchain_la_LDFLAGS = ${AM_LDFLAGS}

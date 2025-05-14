@@ -1,0 +1,13 @@
+bin_PROGRAMS += sign_test
+
+sign_test_SOURCES = \
+	example_blockchain_sign/sign_test.c
+
+sign_test_CFLAGS = ${AM_CFLAGS} \
+	-iquote $(top_srcdir)/../libtee/include
+
+sign_test_LDFLAGS = ${AM_LDFLAGS} \
+	-rdynamic
+
+sign_test_LDADD = \
+	../libtee/libtee.la

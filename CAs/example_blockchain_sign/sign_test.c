@@ -62,9 +62,10 @@ int main(){
     operation.params[1].memref.parent = &in_mem;
 	operation.params[2].memref.parent = &out_mem; // here is value of double-hash
     tee_rv = TEEC_InvokeCommand(&session, HASH_DOFINAL, &operation, NULL);
-    	if (tee_rv != TEEC_SUCCESS) {
-		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
-		goto end_4;
+	if (tee_rv != TEEC_SUCCESS) {
+			printf("isithere?~\n");
+			printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
+			goto end_4;
 	} // Iin out_mem, there is a value of double hash
 
     memset(input, 0, sizeof(input));
@@ -83,7 +84,7 @@ int main(){
     operation.params[0].memref.parent = &in_mem;
 	operation.params[1].memref.parent = &out_mem; // here is value of double-hash
     tee_rv = TEEC_InvokeCommand(&session, SIGN_DOFINAL, NULL, NULL);
-    	if (tee_rv != TEEC_SUCCESS) {
+	if (tee_rv != TEEC_SUCCESS) {
 		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
 		goto end_4;
 	}
