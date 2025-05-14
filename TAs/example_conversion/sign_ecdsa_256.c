@@ -137,9 +137,7 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
-	switch (commandID) {
-	case SIGN_ECDSA_256_SIGN:
-
+	if(commandID == SIGN_ECDSA_256_SIGN) {
 		// [1] net 추출
 		uint32_t network_id = *((uint32_t *)params[0].memref.buffer);
 
@@ -165,13 +163,13 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 				return TEE_ERROR_OUT_OF_MEMORY;
 			}
 
-			TEE_MemMove(formatted, prefix, prefix_len);
+			TEE_MemMove(formatted, (void *)prefix, prefix_len);
 			formatted[prefix_len] = varint_len;
 			TEE_MemMove(formatted + prefix_len + 1, message, msg_len);
 
 			// [4] twice sha256
 			uint8_t digest[32];
-			uint32_t digest_len = 32;
+			size_t digest_len = 32;
     		TEE_OperationHandle sha_op = NULL;
     		rv = TEE_AllocateOperation(&sha_op, TEE_ALG_SHA256, TEE_MODE_DIGEST, 0);
 			if (rv == TEE_SUCCESS) {
@@ -195,15 +193,15 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 			if (rv != TEE_SUCCESS) {
 				OT_LOG(LOG_ERR, "Sign failed");
 			}
-			break;
+			return rv;
 		}
 		else{
-			break;
+			return TEE_ERROR_BAD_PARAMETERS;
 		}
-
-	default:
-		rv = TEE_ERROR_BAD_PARAMETERS;
 	}
-	
-	return rv;
+	else
+	{
+		rv = TEE_ERROR_BAD_PARAMETERS;
+		return rv;
+	}
 }
