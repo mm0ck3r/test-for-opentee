@@ -30,6 +30,11 @@
 #ifdef TA_PLUGIN
 #include "tee_ta_properties.h" /* Setting TA properties */
 
+
+/* Blockchain Network */
+#define NETWORK_BITCOIN 0x0
+#define NETWORK_ETHEREUM 0x1
+
 SET_TA_PROPERTIES(
 	{ 0x12345678, 0x8765, 0x4321, { 'S', 'I', 'G', 'N', 'S', 'I', 'G', 'N'} }, /* UUID */
 		512, /* dataSize */
@@ -64,6 +69,20 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 		OT_LOG(LOG_ERR, "Key generation failed [0x%x]", rv);
 		goto out;
 	}
+
+	// PrintOut private key
+	uint8_t privkey[32];
+    uint32_t len = sizeof(privkey);
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, privkey, &len);
+    if (rv == TEE_SUCCESS) {
+        OT_LOG(LOG_ERR, "Private key: ");
+        for (int i = 0; i < len; i++)
+            OT_LOG(LOG_ERR, "%02x", privkey[i]);
+		OT_LOG(LOG_ERR, "\n");
+    } else {
+        OT_LOG(LOG_ERR, "Failed to get private key: 0x%x", rv);
+		goto out;
+    }
 	
 	rv = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 					objID, objID_len,
@@ -123,28 +142,86 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 						uint32_t paramTypes,
 						TEE_Param params[4])
 {
-	TEE_Result rv = TEE_ERROR_GENERIC;
+	TEE_Result tee_rv = TEE_ERROR_GENERIC;
 
 	sessionContext = sessionContext;
 
-	if (TEE_PARAM_TYPE_GET(paramTypes, 0) != TEE_PARAM_TYPE_MEMREF_INPUT ||
-	    TEE_PARAM_TYPE_GET(paramTypes, 1) != TEE_PARAM_TYPE_MEMREF_OUTPUT) {
-		OT_LOG(LOG_ERR, "Bad parameter at index 0 OR 1");
+	if (TEE_PRAM_TYPE_GET(paramTypes, 0) != TEE_PARAM_TYPE_VALUE_INPUT ||
+		TEE_PARAM_TYPE_GET(paramTypes, 1) != TEE_PARAM_TYPE_MEMREF_INPUT ||
+	    TEE_PARAM_TYPE_GET(paramTypes, 2) != TEE_PARAM_TYPE_MEMREF_OUTPUT) {
+		OT_LOG(LOG_ERR, "Bad parameter at index 1 OR 2");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
 	switch (commandID) {
-	case SIGN_ECDSA_256_SIGN:
-		rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0,
-				      params[0].memref.buffer, params[0].memref.size,
-				      params[1].memref.buffer, &params[1].memref.size);
-		if (rv != TEE_SUCCESS) {
-			OT_LOG(LOG_ERR, "Sign failed");
+		case HASH_DO_FINAL:
+		
+			switch (params[0].value.a) {
+				case NETWORK_BITCOIN:
+
+					TEE_OperationHandle op = NULL;
+					uint8_t temp_hash[32];
+					size_t temp_len = sizeof(temp_hash);
+
+					tee_rv = TEE_AllocateOperation(&op, TEE_ALG_SHA256, TEE_MODE_DIGEST, 0);
+					if (tee_rv != TEE_SUCCESS) {
+						OT_LOG(LOG_ERR, "[NETWORK_BITCOIN] TEE_AllocateOperation failed [0x%x]", tee_rv);
+						goto out;
+					}
+
+					tee_rv = TEE_DigestDoFinal(op, params[1].memref.buffer, params[1].memref.size, temp_hash, &temp_len);
+					if (tee_rv != TEE_SUCCESS) {
+						OT_LOG(LOG_ERR, "[NETWORK_BITCOIN] First TEE_DigestDoFinal failed [0x%x]", tee_rv);
+						goto out;
+					}
+
+					tee_rv = TEE_ResetOperation(op);
+					if (tee_rv != TEE_SUCCESS) {
+						OT_LOG(LOG_ERR, "[NETWORK_BITCOIN] TEE_ResetOperation failed [0x%x]", tee_rv);
+						goto out;
+					}
+
+					tee_rv = TEE_DigestDoFinal(op, temp_hash, temp_len, params[2].memref.buffer, &params[2].memref.size);
+					if (tee_rv != TEE_SUCCESS) {
+						OT_LOG(LOG_ERR, "[NETWORK_BITCOIN] Second TEE_DigestDoFinal failed [0x%x]", tee_rv);
+						goto out;
+					}
+
+					TEE_FreeOperation(op);
+					break;
+
+			case NETWORK_ETHEREUM:
+				break;
+			default:
+				break;
 		}
 		break;
+		
+
+	case SIGN_DO_FINAL:
+		switch (params[0].value.a) {
+
+			case NETWORK_BITCOIN:
+				tee_rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0,
+							params[1].memref.buffer, params[1].memref.size,
+							params[2].memref.buffer, &params[2].memref.size);
+				if (tee_rv != TEE_SUCCESS) {
+					OT_LOG(LOG_ERR, "Sign failed");
+				}
+
+				break;
+			
+			case NETWORK_ETHEREUM:
+				break;
+			default:
+				break;
+		}
+		break;
+
 	default:
 		rv = TEE_ERROR_BAD_PARAMETERS;
 	}
-	
+
+ out:
 	return rv;
 }
