@@ -130,7 +130,8 @@ end_4:
 	TEEC_ReleaseSharedMemory(&out_mem);
 
 end_3:
-	TEEC_ReleaseSharedMemory(&in_mem);
+	TEEC_ReleaseSharedMemory(&net_mem);
+	TEEC_ReleaseSharedMemory(&msg_mem);
 	TEEC_CloseSession(&session);
 end_2:
 	TEEC_FinalizeContext(&context);
