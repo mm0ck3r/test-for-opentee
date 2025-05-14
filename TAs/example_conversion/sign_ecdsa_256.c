@@ -190,20 +190,17 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
     			}
 			}
 
-
 			// [5] ECDSA 서명
 			rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0, digest, 32, params[2].memref.buffer, &params[2].memref.size);
 			if (rv != TEE_SUCCESS) {
 				OT_LOG(LOG_ERR, "Sign failed");
 			}
-
+			break;
 		}
 		else{
-			return TEE_ERROR_NOT_SUPPORTED;
+			break;
 		}
-		
-		break;
-		
+
 	default:
 		rv = TEE_ERROR_BAD_PARAMETERS;
 	}
