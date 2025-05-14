@@ -28,5 +28,4 @@ const TEEC_UUID uuid = {
 #define HASH_DOFINAL 2
 #define SIGN_DOFINAL 3
 
-
 #endif

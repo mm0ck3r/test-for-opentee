@@ -14,6 +14,7 @@ int main(){
 	TEEC_Result tee_rv;
 
     unsigned char sig[72];
+    unsigned char input[32];
 
 	memset((void *)&in_mem, 0, sizeof(in_mem));
 	memset((void *)&out_mem, 0, sizeof(out_mem));
@@ -33,8 +34,9 @@ int main(){
 		goto end_2;
 	}
 
-    strcpy(in_mem.buffer, "\x18Bitcoin Signed Message:\n\x05hello");
-    in_mem.size = strlen("\x18Bitcoin Signed Message:\n\x05hello");
+    strcpy(input, "\x18""Bitcoin Signed Message:\n""\x05""hello");
+    in_mem.buffer = input;
+    in_mem.size = strlen("\x18""Bitcoin Signed Message:\n""\x05""hello");
     in_mem.flags = TEEC_MEM_INPUT;
 
     tee_rv = TEEC_RegisterSharedMemory(&context, &in_mem);
@@ -44,7 +46,7 @@ int main(){
 	}    
 
     out_mem.buffer = sig;
-	out_mem.size = 72;
+	out_mem.size = 32;
 	out_mem.flags = TEEC_MEM_OUTPUT;
 
 	tee_rv = TEEC_RegisterSharedMemory(&context, &out_mem);
@@ -57,13 +59,34 @@ int main(){
 						TEEC_MEMREF_WHOLE, TEEC_NONE);
 	operation.params[0].value.a = 0;
     operation.params[1].memref.parent = &in_mem;
-	operation.params[2].memref.parent = &out_mem;
-	tee_rv = TEEC_InvokeCommand(&session, SIGN_UPDATE, &operation, NULL);
-	if (tee_rv != TEEC_SUCCESS) {
+	operation.params[2].memref.parent = &out_mem; // here is value of double-hash
+	// tee_rv = TEEC_InvokeCommand(&session, SIGN_UPDATE, &operation, NULL);
+	// if (tee_rv != TEEC_SUCCESS) {
+	// 	printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
+	// 	goto end_4;
+	// }
+    tee_rv = TEEC_InvokeCommand(&session, HASH_DOFINAL, NULL, NULL);
+    	if (tee_rv != TEEC_SUCCESS) {
 		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
 		goto end_4;
-	}
+	} // Iin out_mem, there is a value of double hash
 
+
+
+    memset((void *)&in_mem, 0, sizeof(in_mem));
+    memcpy(in_mem.buffer, out_mem.buffer, out_mem.size);
+    in_mem.size = out_mem.size;
+    in_mem.flags = TEEC_MEM_INPUT;
+
+    memset((void *)&out_mem, 0, sizeof(out_mem));
+    out_mem.buffer = sig;
+    out_mem.size = 72;
+	out_mem.flags = TEEC_MEM_OUTPUT;
+
+    operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_MEMREF_WHOLE,
+                        TEEC_NONE, TEEC_NONE);
+    operation.params[0].memref.parent = &in_mem;
+	operation.params[1].memref.parent = &out_mem; // here is value of double-hash
     tee_rv = TEEC_InvokeCommand(&session, SIGN_DOFINAL, NULL, NULL);
     	if (tee_rv != TEEC_SUCCESS) {
 		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
