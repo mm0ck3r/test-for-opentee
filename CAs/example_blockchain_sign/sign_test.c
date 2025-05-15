@@ -58,9 +58,10 @@ int main(){
 
     operation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,TEEC_MEMREF_WHOLE, 
 						TEEC_MEMREF_WHOLE, TEEC_NONE);
-	operation.params[0].value.a = 0;
-    operation.params[1].memref.parent = &in_mem;
-	operation.params[2].memref.parent = &out_mem; // here is value of double-hash
+	operation.params[0].value.a = 0;				// network (bitcoin: 0)
+    operation.params[1].memref.parent = &in_mem;	// message
+	operation.params[2].memref.parent = &out_mem; 	// here is value of hash
+	operation.params[2].memref.size = out_mem.size;
     tee_rv = TEEC_InvokeCommand(&session, HASH_DOFINAL, &operation, NULL);
 	if (tee_rv != TEEC_SUCCESS) {
 			printf("isithere?~\n");
@@ -83,13 +84,16 @@ int main(){
                         TEEC_NONE, TEEC_NONE);
     operation.params[0].memref.parent = &in_mem;
 	operation.params[1].memref.parent = &out_mem; // here is value of double-hash
-    tee_rv = TEEC_InvokeCommand(&session, SIGN_DOFINAL, NULL, NULL);
+    tee_rv = TEEC_InvokeCommand(&session, SIGN_DOFINAL, &operation, NULL);
 	if (tee_rv != TEEC_SUCCESS) {
 		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
 		goto end_4;
 	}
 
-    puts(sig);
+    for (int i = 0; i < 72; i++) {
+    	printf("%02x", sig[i]);
+	}
+	printf("\n");
 
 end_4:
 	TEEC_ReleaseSharedMemory(&out_mem);

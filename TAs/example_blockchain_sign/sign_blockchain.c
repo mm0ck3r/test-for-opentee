@@ -96,24 +96,20 @@ void TA_EXPORT TA_CloseSessionEntryPoint(void *sessionContext)
 	sessionContext = sessionContext;
 }
 
-TEE_Result doubleHash(void *sessionContext, TEE_Param params[4]){
-    TEE_DigestUpdate(sessionContext, params[1].memref.buffer, params[1].memref.size);
+TEE_Result bitcoinHash(void *sessionContext, TEE_Param params[4]){
+    // TEE_DigestUpdate(sessionContext, params[1].memref.buffer, params[1].memref.size);
 
     TEE_Result tee_rv = TEE_SUCCESS;
-    unsigned char imsiBuffer[33];
     tee_rv = TEE_DigestDoFinal(sessionContext, params[1].memref.buffer, params[1].memref.size,
-            imsiBuffer, 33);
-    tee_rv = TEE_DigestDoFinal(sessionContext, imsiBuffer, 33, params[2].memref.buffer,
-            params[2].memref.size);
+            params[2].memref.buffer, &params[2].memref.size);
     return tee_rv;
 }
 
 TEE_Result hashWithNetwork(void* sessionContext, TEE_Param params[4]){
     TEE_Result rv = TEE_ERROR_GENERIC;
-    sessionContext = sessionContext;
     switch(params[0].value.a){
         case 0: // Bitcoin
-            rv = doubleHash(sessionContext, params);
+            rv = bitcoinHash(sessionContext, params);
             break;
         case 1: // Ethereum, Not yet.
             break;
@@ -128,18 +124,9 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 {
 	TEE_Result rv = TEE_ERROR_GENERIC;
 
-	sessionContext = sessionContext;
-
-	// if (TEE_PARAM_TYPE_GET(paramTypes, 0) != TEE_PARAM_TYPE_VALUE_INPUT ||
-	//     TEE_PARAM_TYPE_GET(paramTypes, 1) != TEE_PARAM_TYPE_MEMREF_INPUT ||
-    //     TEE_PARAM_TYPE_GET(paramTypes, 2) != TEE_PARAM_TYPE_MEMREF_OUTPUT) {
-	// 	OT_LOG(LOG_ERR, "Bad parameter at index 0 OR 1 OR 2");
-	// 	return TEE_ERROR_BAD_PARAMETERS;
-	// }
-
 	switch (commandID) {
         case HASH_DOFINAL:
-            hashWithNetwork(sessionContext, params);
+            rv = hashWithNetwork(sessionContext, params);
             break;
         case SIGN_DOFINAL:
             rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0,
