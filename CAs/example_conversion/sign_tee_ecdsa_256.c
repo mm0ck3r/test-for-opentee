@@ -30,9 +30,8 @@
 #define SHA256_SIZE 32
 
 /* Hash TA command IDs for this applet */
-#define HASH_UPDATE	0x00000001
-#define HASH_DO_FINAL	0x00000002
-#define HASH_RESET	0x00000003
+#define HASH_DO_FINAL 0x00000001
+#define SIGN_DO_FINAL	0x00000002
 
 /* Hash algoithm */
 #define HASH_MD5	0x00000001
@@ -47,7 +46,8 @@
 #define NETWORK_ETHEREUM 0x1
 
 /* Message */
-#define BITCOIN_MESSAGE "\x18Bitcoin Signed Message:\n\x05hello"
+#define BITCOIN_MESSAGE "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\x00"
+#define BITCOIN_MESSAGE_LEN 32
 
 int main()
 {
@@ -56,11 +56,15 @@ int main()
 	TEEC_Operation operation = {0};
 	TEEC_SharedMemory in_mem = {0};
 	TEEC_SharedMemory out_mem = {0};
+	TEEC_SharedMemory sign_input_mem = {0};
+	TEEC_SharedMemory sign_output_mem = {0};
 	TEEC_Result tee_rv;
 
 	char data[DATA_SIZE];
 	uint8_t sha256[SHA256_SIZE];
-	unsigned char sig[65];
+	unsigned char sig[72];
+
+	int i;
 	
 	printf("\nSTART: example ECDSA for BITCOIN app\n");
 
@@ -68,8 +72,9 @@ int main()
 	memset((void *)&in_mem, 0, sizeof(in_mem));
 	memset((void *)&out_mem, 0, sizeof(out_mem));
 	memset((void *)&operation, 0, sizeof(operation));
-	strncpy(data, BITCOIN_MESSAGE, sizeof(BITCOIN_MESSAGE))
+	strncpy(data, BITCOIN_MESSAGE, BITCOIN_MESSAGE_LEN);
 	memset(sha256, 0, SHA256_SIZE);
+	memset(sig, 0, 72);
 
 	/*
 	 * Initialize context towards TEE
@@ -99,7 +104,7 @@ int main()
 	///// Hashing /////
 	///////////////////
 	in_mem.buffer = data;
-	in_mem.size = sizeof(data);
+	in_mem.size = BITCOIN_MESSAGE_LEN;
 	in_mem.flags = TEEC_MEM_INPUT;
 
 	tee_rv = TEEC_RegisterSharedMemory(&context, &in_mem);
@@ -120,10 +125,6 @@ int main()
 
 	operation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT, TEEC_MEMREF_WHOLE,
 						TEEC_MEMREF_WHOLE, TEEC_NONE);
-	/*
-	 * reuse the origional input shared memory, because we have just updated the contents
-	 * of the buffer
-	 */
 	operation.params[0].value.a = NETWORK_BITCOIN;
 	operation.params[1].memref.parent = &in_mem;
 	operation.params[2].memref.parent = &out_mem;
@@ -140,7 +141,7 @@ int main()
 	/*
 	 * Printf sha256 buf
 	 */
-	printf("Calculated Double sha256: ");
+	printf("Calculated sha256: ");
 	for (i = 0; i < SHA256_SIZE; i++)
 		printf("%02x", sha256[i]);
 	printf("\n");
@@ -149,21 +150,21 @@ int main()
 	///////////////////
 	///// Signing /////
 	///////////////////
-	in_mem.buffer = sha256;
-	in_mem.size = SHA256_SIZE;
-	in_mem.flags = TEEC_MEM_INPUT;
+	sign_input_mem.buffer = sha256;
+	sign_input_mem.size = SHA256_SIZE;
+	sign_input_mem.flags = TEEC_MEM_INPUT;
 
-	tee_rv = TEEC_RegisterSharedMemory(&context, &in_mem);
+	tee_rv = TEEC_RegisterSharedMemory(&context, &sign_input_mem);
 	if (tee_rv != TEEC_SUCCESS) {
 		printf("Failed to register IN shared memory for signing\n");
 		goto end_4;
 	}
 
-	out_mem.buffer = sig;
-	out_mem.size = sizeof(sig);
-	out_mem.flags = TEEC_MEM_OUTPUT;
+	sign_output_mem.buffer = sig;
+	sign_output_mem.size = sizeof(sig);
+	sign_output_mem.flags = TEEC_MEM_OUTPUT;
 
-	tee_rv = TEEC_RegisterSharedMemory(&context, &out_mem);
+	tee_rv = TEEC_RegisterSharedMemory(&context, &sign_output_mem);
 	if (tee_rv != TEEC_SUCCESS) {
 		printf("Failed to register OUT shared memory for signature\n");
 		goto end_4;
@@ -173,8 +174,8 @@ int main()
 	operation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT, TEEC_MEMREF_WHOLE,
 						TEEC_MEMREF_WHOLE, TEEC_NONE);
 	operation.params[0].value.a = NETWORK_BITCOIN;
-	operation.params[1].memref.parent = &in_mem;
-	operation.params[2].memref.parent = &out_mem;
+	operation.params[1].memref.parent = &sign_input_mem;
+	operation.params[2].memref.parent = &sign_output_mem;
 	tee_rv = TEEC_InvokeCommand(&session, SIGN_DO_FINAL, &operation, NULL);
 	if (tee_rv != TEEC_SUCCESS) {
 		printf("Sign TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
@@ -183,7 +184,7 @@ int main()
 
 	// Signature 출력
 	printf("Signature: ");
-	for (i = 0; i < out_mem.size; i++) {
+	for (i = 0; i < sign_output_mem.size; i++) {
 		printf("%02x", sig[i]);
 	}
 	printf("\n");
@@ -200,3 +201,4 @@ end_2:
 end_1:
 	exit(tee_rv);
 }
+
