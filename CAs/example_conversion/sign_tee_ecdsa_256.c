@@ -44,10 +44,17 @@
 /* Blockchain Network */
 #define NETWORK_BITCOIN 0x0
 #define NETWORK_ETHEREUM 0x1
-
+#define DUMP_KEY 0xDEAD
 /* Message */
 #define BITCOIN_MESSAGE "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\x00"
 #define BITCOIN_MESSAGE_LEN 32
+
+void print_hex(const char *label, const uint8_t *data, size_t len) {
+    printf("%s: ", label);
+    for (size_t i = 0; i < len; i++)
+        printf("%02x", data[i]);
+    printf("\n");
+}
 
 int main()
 {
@@ -58,11 +65,13 @@ int main()
 	TEEC_SharedMemory out_mem = {0};
 	TEEC_SharedMemory sign_input_mem = {0};
 	TEEC_SharedMemory sign_output_mem = {0};
+	TEEC_SharedMemory key = {0};
 	TEEC_Result tee_rv;
 
 	char data[DATA_SIZE];
 	uint8_t sha256[SHA256_SIZE];
 	unsigned char sig[72];
+	uint8_t fuck[96];
 
 	int i;
 	
@@ -188,6 +197,35 @@ int main()
 		printf("%02x", sig[i]);
 	}
 	printf("\n");
+
+	// 개인키, 공개키 출력
+
+	// key.buffer = fuck;
+	// key.size = sizeof(fuck);
+	// key.flags = TEEC_MEM_OUTPUT;
+
+    // tee_rv = TEEC_RegisterSharedMemory(&context, &key);
+    // if (tee_rv != TEEC_SUCCESS) {
+    //     printf("Shared memory alloc failed: 0x%x\n", tee_rv);
+    //     goto end_1;
+    // }
+
+	// memset((void *)&operation, 0, sizeof(operation));
+
+	// operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
+    // operation.params[0].memref.parent = &key;
+    // operation.params[0].memref.size = key.size;
+
+	// tee_rv = TEEC_InvokeCommand(&session, DUMP_KEY, &operation, NULL);
+    // if (tee_rv != TEEC_SUCCESS) {
+    //     printf("Invoke failed: 0x%x\n", tee_rv);
+    //     goto end_1;
+    // }
+
+	// print_hex("Private d", key.buffer, 32);
+    // print_hex("Public X", (uint8_t *)key.buffer + 32, 32);
+    // print_hex("Public Y", (uint8_t *)key.buffer + 64, 32);
+
 
 	
 end_4:

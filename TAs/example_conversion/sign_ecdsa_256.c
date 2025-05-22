@@ -24,7 +24,7 @@
 
 #include "tee_internal_api.h"
 #include "tee_logging.h"
-
+#include <stdio.h>
 #include "sign_ecdsa_256_ctrl.h"
 
 #ifdef TA_PLUGIN
@@ -33,7 +33,7 @@
 /* Hash TA command IDs for this applet */
 #define HASH_DO_FINAL 0x00000001
 #define SIGN_DO_FINAL	0x00000002
-
+#define DUMP_KEY 0XDEAD
 /* Blockchain Network */
 #define NETWORK_BITCOIN 0x0
 #define NETWORK_ETHEREUM 0x1
@@ -46,6 +46,16 @@ SET_TA_PROPERTIES(
 		1, /* multiSession */
 		1) /* instanceKeepAlive */
 #endif
+
+#define DUMP_KEY 0XDEAD
+
+
+void print_hex(const char *label, const uint8_t *data, size_t len) {
+    printf("%s: ", label);
+    for (size_t i = 0; i < len; i++)
+        printf("%02x", data[i]);
+    printf("\n");
+}
 
 TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 {
@@ -86,6 +96,8 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
         OT_LOG(LOG_ERR, "Failed to get private key: 0x%x", rv);
 		goto out;
     }
+
+	print_hex("Private Key: ", privkey, 32);
 	
 	rv = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 					objID, objID_len,
@@ -145,25 +157,29 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 						uint32_t paramTypes,
 						TEE_Param params[4])
 {
-	TEE_Result tee_rv = TEE_ERROR_GENERIC;
+	TEE_Result tee_rv = TEEC_SUCCESS;
 
 	sessionContext = sessionContext;
 
 	TEE_OperationHandle op;
 	uint8_t temp_hash[32];
 	size_t temp_len = sizeof(temp_hash);
+	uint8_t d[32], x[32], y[32];
+	uint32_t d_len = 32;
+	uint32_t x_len = 32;
+	uint32_t y_len = 32;
 
+	TEE_ObjectHandle signkey = NULL;
 
-	if (TEE_PARAM_TYPE_GET(paramTypes, 0) != TEE_PARAM_TYPE_VALUE_INPUT ||
-		TEE_PARAM_TYPE_GET(paramTypes, 1) != TEE_PARAM_TYPE_MEMREF_INPUT ||
-	    TEE_PARAM_TYPE_GET(paramTypes, 2) != TEE_PARAM_TYPE_MEMREF_OUTPUT) {
-		OT_LOG(LOG_ERR, "Bad parameter at index 1 OR 2");
-		return TEE_ERROR_BAD_PARAMETERS;
-	}
+	// if (TEE_PARAM_TYPE_GET(paramTypes, 0) != TEE_PARAM_TYPE_VALUE_INPUT ||
+	// 	TEE_PARAM_TYPE_GET(paramTypes, 1) != TEE_PARAM_TYPE_MEMREF_INPUT ||
+	//     TEE_PARAM_TYPE_GET(paramTypes, 2) != TEE_PARAM_TYPE_MEMREF_OUTPUT) {
+	// 	OT_LOG(LOG_ERR, "Bad parameter at index 1 OR 2");
+	// 	return TEE_ERROR_BAD_PARAMETERS;
+	// }
 
 	switch (commandID) {
 		case HASH_DO_FINAL:
-		
 			switch (params[0].value.a) {
 				case NETWORK_BITCOIN:
 
@@ -181,18 +197,14 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 
 					TEE_FreeOperation(op);
 					break;
-
-			case NETWORK_ETHEREUM:
-				break;
+				case NETWORK_ETHEREUM:
+					break;
 			default:
 				break;
 		}
 		break;
-		
-
 	case SIGN_DO_FINAL:
 		switch (params[0].value.a) {
-
 			case NETWORK_BITCOIN:
 				tee_rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0,
 							params[1].memref.buffer, params[1].memref.size,
@@ -201,16 +213,54 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 					OT_LOG(LOG_ERR, "Sign failed");
 					goto out;
 				}
-
 				break;
-			
 			case NETWORK_ETHEREUM:
 				break;
 			default:
 				break;
 		}
 		break;
+	// case DUMP_KEY:
+	// 		printf("FUck~!!!!\n");
+	// 		tee_rv = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
+	// 									"signkey", 7,
+	// 									TEE_DATA_FLAG_ACCESS_READ,
+	// 									&signkey);
+	// 		if (tee_rv != TEE_SUCCESS){
+	// 			OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
+	// 			return 1;
+	// 		}
 
+	// 		tee_rv = TEE_GetObjectValueAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, d, &d_len);
+	// 		if (tee_rv != TEE_SUCCESS){
+	// 			return 2;
+	// 			OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
+	// 		}
+
+	// 		tee_rv = TEE_GetObjectValueAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_X, x, &x_len);
+	// 		if (tee_rv != TEE_SUCCESS){ 
+	// 			OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
+	// 			return 3;
+	// 		}
+
+	// 		tee_rv = TEE_GetObjectValueAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_Y, y, &y_len);
+	// 		if (tee_rv != TEE_SUCCESS){ 
+	// 			OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
+	// 			return 4;
+	// 		}
+
+	// 		if (params[0].memref.size < 96){
+	// 			OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
+	// 			return 5;
+	// 		}
+
+	// 		TEE_MemMove(params[0].memref.buffer, d, 32);
+	// 		TEE_MemMove((uint8_t *)params[0].memref.buffer + 32, x, 32);
+	// 		TEE_MemMove((uint8_t *)params[0].memref.buffer + 64, y, 32);
+
+	// 		params[0].memref.size = 96;
+	// 		return tee_rv;
+	// 		break;
 	default:
 		tee_rv = TEE_ERROR_BAD_PARAMETERS;
 	}
