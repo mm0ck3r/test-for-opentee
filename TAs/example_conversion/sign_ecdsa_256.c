@@ -42,6 +42,13 @@ SET_TA_PROPERTIES(
 		1) /* instanceKeepAlive */
 #endif
 
+void print_hex(const char *label, const uint8_t *data, size_t len) {
+    printf("%s: ", label);
+    for (size_t i = 0; i < len; i++)
+        printf("%02x", data[i]);
+    printf("\n");
+}
+
 TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 {
 	char objID[] = "signkey";
@@ -67,6 +74,22 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 		OT_LOG(LOG_ERR, "Key generation failed [0x%x]", rv);
 		goto out;
 	}
+
+	// PrintOut private key
+	uint8_t privkey[32];
+    size_t len = sizeof(privkey);
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, privkey, &len);
+    if (rv == TEE_SUCCESS) {
+        OT_LOG(LOG_ERR, "Private key: ");
+        for (int i = 0; i < len; i++)
+            OT_LOG(LOG_ERR, "%02x", privkey[i]);
+		OT_LOG(LOG_ERR, "\n");
+    } else {
+        OT_LOG(LOG_ERR, "Failed to get private key: 0x%x", rv);
+		goto out;
+    }
+
+	print_hex("Private Key: ", privkey, 32);
 	
 	rv = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 					objID, objID_len,
