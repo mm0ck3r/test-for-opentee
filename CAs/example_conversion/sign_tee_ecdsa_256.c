@@ -198,35 +198,6 @@ int main()
    }
    printf("\n");
 
-   // 개인키, 공개키 출력
-
-   // key.buffer = fuck;
-   // key.size = sizeof(fuck);
-   // key.flags = TEEC_MEM_OUTPUT;
-
-    // tee_rv = TEEC_RegisterSharedMemory(&context, &key);
-    // if (tee_rv != TEEC_SUCCESS) {
-    //     printf("Shared memory alloc failed: 0x%x\n", tee_rv);
-    //     goto end_1;
-    // }
-
-   // memset((void *)&operation, 0, sizeof(operation));
-
-   // operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
-    // operation.params[0].memref.parent = &key;
-    // operation.params[0].memref.size = key.size;
-
-   // tee_rv = TEEC_InvokeCommand(&session, DUMP_KEY, &operation, NULL);
-    // if (tee_rv != TEEC_SUCCESS) {
-    //     printf("Invoke failed: 0x%x\n", tee_rv);
-    //     goto end_1;
-    // }
-
-   // print_hex("Private d", key.buffer, 32);
-    // print_hex("Public X", (uint8_t *)key.buffer + 32, 32);
-    // print_hex("Public Y", (uint8_t *)key.buffer + 64, 32);
-
-
    
 end_4:
    TEEC_ReleaseSharedMemory(&out_mem);

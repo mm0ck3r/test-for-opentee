@@ -197,13 +197,6 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 
    TEE_ObjectHandle signkey = NULL;
 
-   // if (TEE_PARAM_TYPE_GET(paramTypes, 0) != TEE_PARAM_TYPE_VALUE_INPUT ||
-   //    TEE_PARAM_TYPE_GET(paramTypes, 1) != TEE_PARAM_TYPE_MEMREF_INPUT ||
-   //     TEE_PARAM_TYPE_GET(paramTypes, 2) != TEE_PARAM_TYPE_MEMREF_OUTPUT) {
-   //    OT_LOG(LOG_ERR, "Bad parameter at index 1 OR 2");
-   //    return TEE_ERROR_BAD_PARAMETERS;
-   // }
-
    switch (commandID) {
       case HASH_DO_FINAL:
          switch (params[0].value.a) {
@@ -271,47 +264,6 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
             break;
       }
       break;
-   // case DUMP_KEY:
-   //       printf("FUck~!!!!\n");
-   //       tee_rv = TEE_OpenPersistentObject(TEE_STORAGE_PRIVATE,
-   //                            "signkey", 7,
-   //                            TEE_DATA_FLAG_ACCESS_READ,
-   //                            &signkey);
-   //       if (tee_rv != TEE_SUCCESS){
-   //          OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
-   //          return 1;
-   //       }
-
-   //       tee_rv = TEE_GetObjectValueAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, d, &d_len);
-   //       if (tee_rv != TEE_SUCCESS){
-   //          return 2;
-   //          OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
-   //       }
-
-   //       tee_rv = TEE_GetObjectValueAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_X, x, &x_len);
-   //       if (tee_rv != TEE_SUCCESS){ 
-   //          OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
-   //          return 3;
-   //       }
-
-   //       tee_rv = TEE_GetObjectValueAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_Y, y, &y_len);
-   //       if (tee_rv != TEE_SUCCESS){ 
-   //          OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
-   //          return 4;
-   //       }
-
-   //       if (params[0].memref.size < 96){
-   //          OT_LOG(LOG_ERR, "Failed on PRIVATE_VALUE: 0x%x", tee_rv);
-   //          return 5;
-   //       }
-
-   //       TEE_MemMove(params[0].memref.buffer, d, 32);
-   //       TEE_MemMove((uint8_t *)params[0].memref.buffer + 32, x, 32);
-   //       TEE_MemMove((uint8_t *)params[0].memref.buffer + 64, y, 32);
-
-   //       params[0].memref.size = 96;
-   //       return tee_rv;
-   //       break;
    default:
       tee_rv = TEE_ERROR_BAD_PARAMETERS;
    }
