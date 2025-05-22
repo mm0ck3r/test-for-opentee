@@ -114,9 +114,9 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 		goto out;
     }
 
-	print_hex("Private Key: ", privkey, 32);
-	print_hex("X_val Key: ", x_val, 32);
-	print_hex("Y_val Key: ", y_val, 32);
+	print_hex("Private Key", privkey, 32);
+	print_hex("X_val Key", x_val, 32);
+	print_hex("Y_val Key", y_val, 32);
 
 	rv = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 					objID, objID_len,
@@ -195,27 +195,27 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 		uint8_t *message = (uint8_t *)params[1].memref.buffer;
     	size_t msg_len = params[1].memref.size;
 
-		// [3] format 처리
-		uint8_t *formatted = NULL;
-    	size_t formatted_len = 0;
+		// // [3] format 처리
+		// uint8_t *formatted = NULL;
+    	// size_t formatted_len = 0;
 
 		if(network_id == BitCoin){
-			// "\x18Bitcoin Signed Message:\n" + varint(msg_len) + message
-			const char prefix[] = "\x18Bitcoin Signed Message:\n";
-        	size_t prefix_len = sizeof(prefix) - 1;
+			// // "\x18Bitcoin Signed Message:\n" + varint(msg_len) + message
+			// const char prefix[] = "\x18Bitcoin Signed Message:\n";
+        	// size_t prefix_len = sizeof(prefix) - 1;
 
-			// 1byte보다 작은 경우 1로 만들기 위해서...
-			uint8_t varint_len = (uint8_t)msg_len;
+			// // 1byte보다 작은 경우 1로 만들기 위해서...
+			// uint8_t varint_len = (uint8_t)msg_len;
 
-			formatted_len = prefix_len + 1 + msg_len;
-			formatted = TEE_Malloc(formatted_len, 0);
-			if(!formatted){
-				return TEE_ERROR_OUT_OF_MEMORY;
-			}
+			// formatted_len = prefix_len + 1 + msg_len;
+			// formatted = TEE_Malloc(formatted_len, 0);
+			// if(!formatted){
+			// 	return TEE_ERROR_OUT_OF_MEMORY;
+			// }
 
-			TEE_MemMove(formatted, (void *)prefix, prefix_len);
-			formatted[prefix_len] = varint_len;
-			TEE_MemMove(formatted + prefix_len + 1, message, msg_len);
+			// TEE_MemMove(formatted, (void *)prefix, prefix_len);
+			// formatted[prefix_len] = varint_len;
+			// TEE_MemMove(formatted + prefix_len + 1, message, msg_len);
 
 			// [4] twice sha256
 			uint8_t digest[32];
@@ -223,7 +223,7 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
     		TEE_OperationHandle sha_op = NULL;
     		rv = TEE_AllocateOperation(&sha_op, TEE_ALG_SHA256, TEE_MODE_DIGEST, 0);
 			if (rv == TEE_SUCCESS) {
-    			rv = TEE_DigestDoFinal(sha_op, formatted, formatted_len, digest, &digest_len);
+    			rv = TEE_DigestDoFinal(sha_op, message, msg_len, digest, &digest_len);
     			TEE_FreeOperation(sha_op);
     			sha_op = NULL;
 			}
@@ -234,10 +234,13 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
 			printf("\n");
 
 			// [5] ECDSA 서명
-			rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0, digest, 32, params[2].memref.buffer, &params[2].memref.size);
+			size_t sig_len = params[2].memref.size;
+			rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0, digest, 32, params[2].memref.buffer, &sig_len);
 			if (rv != TEE_SUCCESS) {
 				OT_LOG(LOG_ERR, "Sign failed");
+				return rv;
 			}
+			params[2].memref.size = sig_len;
 			return rv;
 		}
 		else{
