@@ -98,6 +98,32 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
     }
 
 	print_hex("Private Key: ", privkey, 32);
+
+	// 공개키 X, Y 추출
+	uint8_t pubkey_x[32], pubkey_y[32];
+	size_t x_len = sizeof(pubkey_x), y_len = sizeof(pubkey_y);
+
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_X, pubkey_x, &x_len);
+	if (rv != TEE_SUCCESS) {
+		OT_LOG(LOG_ERR, "Failed to get public key X: 0x%x", rv);
+		goto out;
+	}
+
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_Y, pubkey_y, &y_len);
+	if (rv != TEE_SUCCESS) {
+		OT_LOG(LOG_ERR, "Failed to get public key Y: 0x%x", rv);
+		goto out;
+	}
+
+	printf("Public key X: ");
+	for (int i = 0; i < x_len; i++)
+		printf("%02x", pubkey_x[i]);
+	printf("\n");
+
+	printf("Public key Y: ");
+	for (int i = 0; i < y_len; i++)
+		printf("%02x", pubkey_y[i]);
+	printf("\n");
 	
 	rv = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 					objID, objID_len,
