@@ -86,7 +86,7 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, privkey, &p_len);
     if (rv == TEE_SUCCESS) {
         OT_LOG(LOG_ERR, "Private key: ");
-        for (int i = 0; i < len; i++)
+        for (int i = 0; i < p_len; i++)
             OT_LOG(LOG_ERR, "%02x", privkey[i]);
 		OT_LOG(LOG_ERR, "\n");
     } else {
@@ -96,7 +96,7 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_X, x_val, &x_len);
     if (rv == TEE_SUCCESS) {
         OT_LOG(LOG_ERR, "X_val key: ");
-        for (int i = 0; i < len; i++)
+        for (int i = 0; i < x_len; i++)
             OT_LOG(LOG_ERR, "%02x", x_val[i]);
 		OT_LOG(LOG_ERR, "\n");
     } else {
@@ -106,7 +106,7 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_Y, y_val, &y_len);
     if (rv == TEE_SUCCESS) {
         OT_LOG(LOG_ERR, "X_val key: ");
-        for (int i = 0; i < len; i++)
+        for (int i = 0; i < y_len; i++)
             OT_LOG(LOG_ERR, "%02x", y_val[i]);
 		OT_LOG(LOG_ERR, "\n");
     } else {
