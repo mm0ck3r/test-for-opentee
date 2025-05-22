@@ -24,107 +24,218 @@
 #include "tee_client_api.h"
 #include "sign_ecdsa_256_ctrl.h"
 
-/*Modify*/
-#define BitCoin 0x0
+/* Data buffer sizes */
+#define DATA_SIZE   256
+#define SHA1_SIZE   20
+#define SHA256_SIZE 32
+
+/* Hash TA command IDs for this applet */
+#define HASH_DO_FINAL 0x00000001
+#define SIGN_DO_FINAL   0x00000002
+
+/* Hash algoithm */
+#define HASH_MD5   0x00000001
+#define HASH_SHA1   0x00000002
+#define HASH_SHA224   0x00000003
+#define HASH_SHA256   0x00000004
+#define HASH_SHA384   0x00000005
+#define HASH_SHA512   0x00000006
+
+/* Blockchain Network */
+#define NETWORK_BITCOIN 0x0
+#define NETWORK_ETHEREUM 0x1
+#define DUMP_KEY 0xDEAD
+/* Message */
+#define BITCOIN_MESSAGE "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\x00"
+#define BITCOIN_MESSAGE_LEN 32
+
+void print_hex(const char *label, const uint8_t *data, size_t len) {
+    printf("%s: ", label);
+    for (size_t i = 0; i < len; i++)
+        printf("%02x", data[i]);
+    printf("\n");
+}
 
 int main()
 {
-	TEEC_Context context;
-	TEEC_Session session;
-	TEEC_Operation operation = {0};
-	//TEEC_SharedMemory in_mem = {0};
-	TEEC_SharedMemory net_mem = {0};
-	TEEC_SharedMemory msg_mem = {0};
-	TEEC_SharedMemory out_mem = {0};
-	TEEC_Result tee_rv;
-	//unsigned char hash[32];
-	/*Modify*/
-	uint32_t network_id = BitCoin;
-    unsigned char message[6] = {'h','e','l','l','o','\0'};
-	unsigned char sig[72];
-	
-	memset((void *)&net_mem, 0, sizeof(net_mem));
-	memset((void *)&msg_mem, 0, sizeof(msg_mem));
-	memset((void *)&out_mem, 0, sizeof(out_mem));
-	memset((void *)&operation, 0, sizeof(operation));
+   TEEC_Context context;
+   TEEC_Session session;
+   TEEC_Operation operation = {0};
+   TEEC_SharedMemory in_mem = {0};
+   TEEC_SharedMemory out_mem = {0};
+   TEEC_SharedMemory sign_input_mem = {0};
+   TEEC_SharedMemory sign_output_mem = {0};
+   TEEC_SharedMemory key = {0};
+   TEEC_Result tee_rv;
 
-	tee_rv = TEEC_InitializeContext(NULL, &context);
-	if (tee_rv != TEEC_SUCCESS) {
-		printf("TEEC_InitializeContext failed: 0x%x\n", tee_rv);
-		goto end_1;
-	}
+   char data[DATA_SIZE];
+   uint8_t sha256[SHA256_SIZE];
+   unsigned char sig[72];
+   uint8_t fuck[96];
 
-	tee_rv = TEEC_OpenSession(&context, &session,
-				  &uuid, TEEC_LOGIN_PUBLIC,
-				  NULL, NULL, NULL);
-	if (tee_rv != TEEC_SUCCESS) {
-		printf("TEEC_OpenSession failed: 0x%x\n", tee_rv);
-		goto end_2;
-	}
+   int i;
+   
+   printf("\nSTART: example ECDSA for BITCOIN app\n");
 
-	// network regist
-	net_mem.buffer = &network_id;
-	net_mem.size = sizeof(network_id);
-	net_mem.flags = TEEC_MEM_INPUT;
+   /* Initialize data stuctures */
+   memset((void *)&in_mem, 0, sizeof(in_mem));
+   memset((void *)&out_mem, 0, sizeof(out_mem));
+   memset((void *)&operation, 0, sizeof(operation));
+   strncpy(data, BITCOIN_MESSAGE, BITCOIN_MESSAGE_LEN);
+   memset(sha256, 0, SHA256_SIZE);
+   memset(sig, 0, 72);
 
-	tee_rv = TEEC_RegisterSharedMemory(&context, &net_mem);
-	if (tee_rv != TEE_SUCCESS) {
-		printf("Failed to allocate OUT shared memory\n");
-		goto end_3;
-	}
+   /*
+    * Initialize context towards TEE
+    */
+   printf("Initializing context: ");
+   tee_rv = TEEC_InitializeContext(NULL, &context);
+   if (tee_rv != TEEC_SUCCESS) {
+      printf("TEEC_InitializeContext failed: 0x%x\n", tee_rv);
+      goto end_1;
+   } else {
+      printf("initialized\n");
+   }
 
-	// msg regist
-	msg_mem.buffer = message;
-    msg_mem.size = sizeof(message);
-    msg_mem.flags = TEEC_MEM_INPUT;
-    tee_rv = TEEC_RegisterSharedMemory(&context, &msg_mem);
-	if (tee_rv != TEE_SUCCESS) {
-		printf("Failed to allocate OUT shared memory\n");
-		goto end_3;
-	}
+   /*
+    * Open session towards Digest TA
+    */
+   tee_rv = TEEC_OpenSession(&context, &session,
+              &uuid, TEEC_LOGIN_PUBLIC,
+              NULL, NULL, NULL);
+   if (tee_rv != TEEC_SUCCESS) {
+      printf("TEEC_OpenSession failed: 0x%x\n", tee_rv);
+      goto end_2;
+   }
 
-	// sig reigst
-	out_mem.buffer = sig;
-	out_mem.size = 72;
-	out_mem.flags = TEEC_MEM_OUTPUT;
 
-	tee_rv = TEEC_RegisterSharedMemory(&context, &out_mem);
-	if (tee_rv != TEE_SUCCESS) {
-		printf("Failed to allocate OUT shared memory\n");
-		goto end_3;
-	}
+   ///////////////////
+   ///// Hashing /////
+   ///////////////////
+   in_mem.buffer = data;
+   in_mem.size = BITCOIN_MESSAGE_LEN;
+   in_mem.flags = TEEC_MEM_INPUT;
 
-	
-	operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_MEMREF_WHOLE,
-						TEEC_MEMREF_WHOLE, TEEC_NONE);
-	operation.params[0].memref.parent = &net_mem;
-	operation.params[1].memref.parent = &msg_mem;
-	operation.params[2].memref.parent = &out_mem;
-	tee_rv = TEEC_InvokeCommand(&session, SIGN_ECDSA_256_SIGN, &operation, NULL);
-	if (tee_rv != TEEC_SUCCESS) {
-		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
-		goto end_4;
-	}
+   tee_rv = TEEC_RegisterSharedMemory(&context, &in_mem);
+   if (tee_rv != TEE_SUCCESS) {
+      printf("Failed to register IN shared memory\n");
+      goto end_3;
+   }
 
-	// print signature
-	printf("Signature (%u bytes):\n", (unsigned int)out_mem.size);
+   out_mem.buffer = sha256;
+   out_mem.size = SHA256_SIZE;
+   out_mem.flags = TEEC_MEM_OUTPUT;
 
-	for (size_t i = 0; i < out_mem.size; i++) {
-    	printf("%02x", ((unsigned char *)out_mem.buffer)[i]);
-	}
-	printf("\n");
+   tee_rv = TEEC_RegisterSharedMemory(&context, &out_mem);
+   if (tee_rv != TEE_SUCCESS) {
+      printf("Failed to allocate OUT shared memory\n");
+      goto end_3;
+   }
 
-	//Signature stored: operation.params[1].memref
-	
+   operation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT, TEEC_MEMREF_WHOLE,
+                  TEEC_MEMREF_WHOLE, TEEC_NONE);
+   operation.params[0].value.a = NETWORK_BITCOIN;
+   operation.params[1].memref.parent = &in_mem;
+   operation.params[2].memref.parent = &out_mem;
+
+   printf("Invoking command: Do final Double sha256: ");
+   tee_rv = TEEC_InvokeCommand(&session, HASH_DO_FINAL, &operation, NULL);
+   if (tee_rv != TEEC_SUCCESS) {
+      printf("Hash TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
+      goto end_4;
+   } else {
+      printf("Hash Done\n");
+   }
+
+   /*
+    * Printf sha256 buf
+    */
+   printf("Calculated sha256: ");
+   for (i = 0; i < SHA256_SIZE; i++)
+      printf("%02x", sha256[i]);
+   printf("\n");
+
+
+   ///////////////////
+   ///// Signing /////
+   ///////////////////
+   sign_input_mem.buffer = sha256;
+   sign_input_mem.size = SHA256_SIZE;
+   sign_input_mem.flags = TEEC_MEM_INPUT;
+
+   tee_rv = TEEC_RegisterSharedMemory(&context, &sign_input_mem);
+   if (tee_rv != TEEC_SUCCESS) {
+      printf("Failed to register IN shared memory for signing\n");
+      goto end_4;
+   }
+
+   sign_output_mem.buffer = sig;
+   sign_output_mem.size = sizeof(sig);
+   sign_output_mem.flags = TEEC_MEM_OUTPUT;
+
+   tee_rv = TEEC_RegisterSharedMemory(&context, &sign_output_mem);
+   if (tee_rv != TEEC_SUCCESS) {
+      printf("Failed to register OUT shared memory for signature\n");
+      goto end_4;
+   }
+   
+
+   operation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT, TEEC_MEMREF_WHOLE,
+                  TEEC_MEMREF_WHOLE, TEEC_NONE);
+   operation.params[0].value.a = NETWORK_BITCOIN;
+   operation.params[1].memref.parent = &sign_input_mem;
+   operation.params[2].memref.parent = &sign_output_mem;
+   tee_rv = TEEC_InvokeCommand(&session, SIGN_DO_FINAL, &operation, NULL);
+   if (tee_rv != TEEC_SUCCESS) {
+      printf("Sign TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
+      goto end_4;
+   }
+
+   // Signature 출력
+   printf("Signature: ");
+   for (i = 0; i < sign_output_mem.size; i++) {
+      printf("%02x", sig[i]);
+   }
+   printf("\n");
+
+   // 개인키, 공개키 출력
+
+   // key.buffer = fuck;
+   // key.size = sizeof(fuck);
+   // key.flags = TEEC_MEM_OUTPUT;
+
+    // tee_rv = TEEC_RegisterSharedMemory(&context, &key);
+    // if (tee_rv != TEEC_SUCCESS) {
+    //     printf("Shared memory alloc failed: 0x%x\n", tee_rv);
+    //     goto end_1;
+    // }
+
+   // memset((void *)&operation, 0, sizeof(operation));
+
+   // operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
+    // operation.params[0].memref.parent = &key;
+    // operation.params[0].memref.size = key.size;
+
+   // tee_rv = TEEC_InvokeCommand(&session, DUMP_KEY, &operation, NULL);
+    // if (tee_rv != TEEC_SUCCESS) {
+    //     printf("Invoke failed: 0x%x\n", tee_rv);
+    //     goto end_1;
+    // }
+
+   // print_hex("Private d", key.buffer, 32);
+    // print_hex("Public X", (uint8_t *)key.buffer + 32, 32);
+    // print_hex("Public Y", (uint8_t *)key.buffer + 64, 32);
+
+
+   
 end_4:
-	TEEC_ReleaseSharedMemory(&out_mem);
+   TEEC_ReleaseSharedMemory(&out_mem);
 
 end_3:
-	TEEC_ReleaseSharedMemory(&net_mem);
-	TEEC_ReleaseSharedMemory(&msg_mem);
-	TEEC_CloseSession(&session);
+   TEEC_ReleaseSharedMemory(&in_mem);
+   TEEC_CloseSession(&session);
 end_2:
-	TEEC_FinalizeContext(&context);
+   TEEC_FinalizeContext(&context);
 end_1:
-	exit(tee_rv);
+   exit(tee_rv);
 }
