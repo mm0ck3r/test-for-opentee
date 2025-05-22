@@ -25,7 +25,7 @@
 #include "sign_ecdsa_256_ctrl.h"
 
 /*Modify*/
-#define BitCoin 0x1
+#define BitCoin 0x0
 
 int main()
 {

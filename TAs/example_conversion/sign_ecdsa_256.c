@@ -28,7 +28,7 @@
 #include "sign_ecdsa_256_ctrl.h"
 
 /*Modify*/
-#define BitCoin 0x1
+#define BitCoin 0x0
 
 #ifdef TA_PLUGIN
 #include "tee_ta_properties.h" /* Setting TA properties */
@@ -178,15 +178,21 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
     			sha_op = NULL;
 			}
 
-			if (rv == TEE_SUCCESS) {
-    			digest_len = 32;
-    			rv = TEE_AllocateOperation(&sha_op, TEE_ALG_SHA256, TEE_MODE_DIGEST, 0);
-    			if (rv == TEE_SUCCESS) {
-        			rv = TEE_DigestDoFinal(sha_op, digest, 32, digest, &digest_len);
-        			TEE_FreeOperation(sha_op);
-        			sha_op = NULL;
-    			}
-			}
+			// if (rv == TEE_SUCCESS) {
+    		// 	digest_len = 32;
+    		// 	rv = TEE_AllocateOperation(&sha_op, TEE_ALG_SHA256, TEE_MODE_DIGEST, 0);
+    		// 	if (rv == TEE_SUCCESS) {
+        	// 		rv = TEE_DigestDoFinal(sha_op, digest, 32, digest, &digest_len);
+        	// 		TEE_FreeOperation(sha_op);
+        	// 		sha_op = NULL;
+    		// 	}
+			// }
+			// /*hash 출력*/
+			// char hexbuf[65] = {0};  // 32 bytes * 2 + 1
+			// for (size_t i = 0; i < 32; i++) {
+    		// 	TEE_snprintf(hexbuf + i*2, 3, "%02x", digest[i]);
+			// }
+			// OT_LOG(LOG_ERR, "Double SHA256 digest: %s", hexbuf);
 
 			// [5] ECDSA 서명
 			rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0, digest, 32, params[2].memref.buffer, &params[2].memref.size);
