@@ -13,6 +13,8 @@
         "variant": "c",
         "vector": "c",
         "blockchain_sign_ctrl.h": "c",
-        "sign_blockchain_ctrl.h": "c"
+        "sign_blockchain_ctrl.h": "c",
+        "tee_crypto_api.h": "c",
+        "stdio.h": "c"
     }
 }
