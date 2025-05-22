@@ -24,6 +24,13 @@
 #include "tee_client_api.h"
 #include "sign_ecdsa_256_ctrl.h"
 
+void print_hex(const char *label, const uint8_t *data, size_t len) {
+    printf("%s: ", label);
+    for (size_t i = 0; i < len; i++)
+        printf("%02x", data[i]);
+    printf("\n");
+}
+
 int main()
 {
 	TEEC_Context context;
@@ -84,6 +91,8 @@ int main()
 		printf("TEEC_InvokeCommand failed: 0x%x\n", tee_rv);
 		goto end_4;
 	}
+
+	print_hex("Signature: ", sig, 72);
 
 	//Signature stored: operation.params[1].memref
 	

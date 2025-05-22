@@ -71,6 +71,48 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 		OT_LOG(LOG_ERR, "Key generation failed [0x%x]", rv);
 		goto out;
 	}
+
+	// PrintOut private key
+	uint8_t privkey[32];
+    size_t len = sizeof(privkey);
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, privkey, &len);
+    if (rv == TEE_SUCCESS) {
+        OT_LOG(LOG_ERR, "Private key: ");
+        for (int i = 0; i < len; i++)
+            OT_LOG(LOG_ERR, "%02x", privkey[i]);
+		OT_LOG(LOG_ERR, "\n");
+    } else {
+        OT_LOG(LOG_ERR, "Failed to get private key: 0x%x", rv);
+		goto out;
+    }
+
+	print_hex("Private Key: ", privkey, 32);
+
+	// 공개키 X, Y 추출
+	uint8_t pubkey_x[32], pubkey_y[32];
+	size_t x_len = sizeof(pubkey_x), y_len = sizeof(pubkey_y);
+
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_X, pubkey_x, &x_len);
+	if (rv != TEE_SUCCESS) {
+		OT_LOG(LOG_ERR, "Failed to get public key X: 0x%x", rv);
+		goto out;
+	}
+
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_Y, pubkey_y, &y_len);
+	if (rv != TEE_SUCCESS) {
+		OT_LOG(LOG_ERR, "Failed to get public key Y: 0x%x", rv);
+		goto out;
+	}
+
+	printf("Public key X: ");
+	for (int i = 0; i < x_len; i++)
+		printf("%02x", pubkey_x[i]);
+	printf("\n");
+
+	printf("Public key Y: ");
+	for (int i = 0; i < y_len; i++)
+		printf("%02x", pubkey_y[i]);
+	printf("\n");
 	
 	rv = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 					objID, objID_len,
@@ -103,6 +145,7 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 	TEE_FreeTransientObject(signkey);
 	return rv;
 }
+
 
 void TA_EXPORT TA_DestroyEntryPoint(void)
 {
