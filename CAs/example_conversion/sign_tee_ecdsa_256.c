@@ -62,16 +62,6 @@ int main()
 		goto end_2;
 	}
 
-	// in_mem.buffer = hash;
-	// in_mem.size = 32;
-	// in_mem.flags = TEEC_MEM_INPUT;
-
-	// tee_rv = TEEC_RegisterSharedMemory(&context, &in_mem);
-	// if (tee_rv != TEE_SUCCESS) {
-	// 	printf("Failed to register IN shared memory\n");
-	// 	goto end_3;
-	// }
-
 	// network regist
 	net_mem.buffer = &network_id;
 	net_mem.size = sizeof(network_id);
