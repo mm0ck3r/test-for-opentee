@@ -26,6 +26,7 @@
 #include "tee_logging.h"
 
 #include "sign_ecdsa_256_ctrl.h"
+#include <stdio.h>
 
 /*Modify*/
 #define BitCoin 0x0
