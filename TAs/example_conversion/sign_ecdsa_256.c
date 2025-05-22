@@ -24,7 +24,7 @@
 
 #include "tee_internal_api.h"
 #include "tee_logging.h"
-
+#include <stdio.h>
 #include "sign_ecdsa_256_ctrl.h"
 
 #ifdef TA_PLUGIN
@@ -38,6 +38,13 @@ SET_TA_PROPERTIES(
 		1, /* multiSession */
 		1) /* instanceKeepAlive */
 #endif
+
+void print_hex(const char *label, const uint8_t *data, size_t len) {
+    printf("%s: ", label);
+    for (size_t i = 0; i < len; i++)
+        printf("%02x", data[i]);
+    printf("\n");
+}
 
 TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 {
