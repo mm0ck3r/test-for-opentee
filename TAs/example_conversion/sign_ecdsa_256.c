@@ -78,8 +78,12 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
 
 	// PrintOut private key
 	uint8_t privkey[32];
-    size_t len = sizeof(privkey);
-	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, privkey, &len);
+	uint8_t x_val[32];
+	uint8_t y_val[32];
+    size_t p_len = sizeof(privkey);
+	size_t x_len = sizeof(x_val);
+	size_t y_len = sizeof(y_val);
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PRIVATE_VALUE, privkey, &p_len);
     if (rv == TEE_SUCCESS) {
         OT_LOG(LOG_ERR, "Private key: ");
         for (int i = 0; i < len; i++)
@@ -89,9 +93,31 @@ TEE_Result TA_EXPORT TA_CreateEntryPoint(void)
         OT_LOG(LOG_ERR, "Failed to get private key: 0x%x", rv);
 		goto out;
     }
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_X, x_val, &x_len);
+    if (rv == TEE_SUCCESS) {
+        OT_LOG(LOG_ERR, "X_val key: ");
+        for (int i = 0; i < len; i++)
+            OT_LOG(LOG_ERR, "%02x", x_val[i]);
+		OT_LOG(LOG_ERR, "\n");
+    } else {
+        OT_LOG(LOG_ERR, "Failed to get private key: 0x%x", rv);
+		goto out;
+    }
+	rv = TEE_GetObjectBufferAttribute(signkey, TEE_ATTR_ECC_PUBLIC_VALUE_Y, y_val, &y_len);
+    if (rv == TEE_SUCCESS) {
+        OT_LOG(LOG_ERR, "X_val key: ");
+        for (int i = 0; i < len; i++)
+            OT_LOG(LOG_ERR, "%02x", y_val[i]);
+		OT_LOG(LOG_ERR, "\n");
+    } else {
+        OT_LOG(LOG_ERR, "Failed to get private key: 0x%x", rv);
+		goto out;
+    }
 
 	print_hex("Private Key: ", privkey, 32);
-	
+	print_hex("X_val Key: ", x_val, 32);
+	print_hex("Y_val Key: ", y_val, 32);
+
 	rv = TEE_CreatePersistentObject(TEE_STORAGE_PRIVATE,
 					objID, objID_len,
 					TEE_DATA_FLAG_ACCESS_WRITE | TEE_DATA_FLAG_EXCLUSIVE,
@@ -201,6 +227,11 @@ TEE_Result TA_EXPORT TA_InvokeCommandEntryPoint(void *sessionContext,
     			TEE_FreeOperation(sha_op);
     			sha_op = NULL;
 			}
+			printf("fisrt sha256 : ");
+			for (size_t i = 0; i < digest_len; i++) {
+    			printf("%02x", digest[i]);
+			}
+			printf("\n");
 
 			// [5] ECDSA 서명
 			rv = TEE_AsymmetricSignDigest(TEE_GetInstanceData(), NULL, 0, digest, 32, params[2].memref.buffer, &params[2].memref.size);
